@@ -1,6 +1,5 @@
 package com.github.ynhj123.redismq.stream.conf;
 
-import com.alibaba.fastjson.JSON;
 import io.lettuce.core.RedisBusyException;
 import io.lettuce.core.RedisCommandExecutionException;
 import org.apache.commons.lang3.RandomUtils;
@@ -60,7 +59,7 @@ public class RedisStreamMqStartService {
                 .withStreamKey(event);
         redisTemplate.opsForStream().add(record);
         redisTemplate.opsForStream().trim(event, maxLen, true);
-        log.info("event {} send content {}", event, JSON.toJSON(val));
+        log.info("event {} send content {}", event, val);
     }
 
     private void startSubscription(String event, Class type, StreamListener streamListener) {
