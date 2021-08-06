@@ -1,0 +1,1 @@
+rg.springframework.boot.autoconfigure.EnableAutoConfiguration=com.github.ynhj123.redismq.stream.autoConfigure.RedisStreamMqAutoConfigure

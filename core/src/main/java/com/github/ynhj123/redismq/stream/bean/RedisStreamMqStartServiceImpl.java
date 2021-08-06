@@ -1,4 +1,4 @@
-package com.github.ynhj123.redismq.stream.conf;
+package com.github.ynhj123.redismq.stream.bean;
 
 import io.lettuce.core.RedisBusyException;
 import io.lettuce.core.RedisCommandExecutionException;
@@ -6,17 +6,12 @@ import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.stream.*;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
-import org.springframework.stereotype.Component;
 
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
@@ -30,24 +25,23 @@ import java.util.Collections;
  * @version: 1.0
  * @description： update_version: update_date: update_author: update_note:
  */
-@Component
-public class RedisStreamMqStartService {
-    private static final Logger log = LoggerFactory.getLogger(RedisStreamMqStartService.class);
+public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService {
+    private static final Logger log = LoggerFactory.getLogger(RedisStreamMqStartServiceImpl.class);
     private final long dataCenterId = getDataCenterId();
 
     private final StringRedisTemplate redisTemplate;
 
-    @Value("${spring.application.name:default}")
     private String group;
-    @Value("${spring.redis.stream.maxLen:100}")
-    long maxLen = 1000;
+    long maxLen;
 
-    public RedisStreamMqStartService(@Qualifier("stringRedisTemplate") StringRedisTemplate redisTemplate) {
+    public RedisStreamMqStartServiceImpl(StringRedisTemplate redisTemplate, String group, Long maxLen) {
         this.redisTemplate = redisTemplate;
+        this.group = group;
+        this.maxLen = maxLen;
     }
 
 
-    void listener(String event, Class type, StreamListener streamListener) {
+    public void listener(String event, Class type, StreamListener streamListener) {
         createGroup(event);
         startSubscription(event, type, streamListener);
     }

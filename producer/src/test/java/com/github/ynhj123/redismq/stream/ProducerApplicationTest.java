@@ -1,6 +1,6 @@
 package com.github.ynhj123.redismq.stream;
 
-import com.github.ynhj123.redismq.stream.conf.RedisStreamMqStartService;
+import com.github.ynhj123.redismq.stream.bean.RedisStreamMqStartService;
 import com.github.ynhj123.redismq.stream.message.TestMessage1;
 import com.github.ynhj123.redismq.stream.message.TestMessage2;
 import org.junit.jupiter.api.Test;

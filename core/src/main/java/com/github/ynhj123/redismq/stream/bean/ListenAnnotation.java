@@ -1,13 +1,11 @@
-package com.github.ynhj123.redismq.stream.conf;
+package com.github.ynhj123.redismq.stream.bean;
 
 import com.github.ynhj123.redismq.stream.annotation.RedisStreamMqListen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.data.redis.stream.StreamListener;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
@@ -18,8 +16,6 @@ import java.util.Map;
  * @version: 1.0
  * @description： update_version: update_date: update_author: update_note:
  */
-@Component
-@ConditionalOnBean(RedisStreamMqStartService.class)
 public class ListenAnnotation implements ApplicationListener<ContextRefreshedEvent> {
     private static final Logger log = LoggerFactory.getLogger(ListenAnnotation.class);
 

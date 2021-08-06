@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @version: 1.0
  * @description： update_version: update_date: update_author: update_note:
  */
-@SpringBootApplication(scanBasePackages = "com.github")
+@SpringBootApplication
 public class ProducerApplication {
     public static void main(String[] args) {
         SpringApplication.run(ProducerApplication.class, args);
