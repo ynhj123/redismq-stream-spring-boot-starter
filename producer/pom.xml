@@ -5,25 +5,25 @@
     <parent>
         <artifactId>redismq-stream-spring-boot-start</artifactId>
         <groupId>com.github.ynhj123</groupId>
-        <version>0.0.1</version>
+        <version>0.0.3</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>producer</artifactId>
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>17</java.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>com.github.ynhj123</groupId>
             <artifactId>common</artifactId>
-            <version>0.0.1</version>
+            <version>0.0.3</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.github.ynhj123</groupId>
             <artifactId>core</artifactId>
-            <version>0.0.2</version>
+            <version>0.0.3</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
