@@ -2,6 +2,7 @@ package com.github.ynhj123.redismq.stream.bean;
 
 import io.lettuce.core.RedisBusyException;
 import io.lettuce.core.RedisCommandExecutionException;
+import io.lettuce.core.RedisException;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -63,6 +64,16 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
                 .builder()
                 .pollTimeout(Duration.ofSeconds(1))
                 .targetType(type)
+                .errorHandler((t) -> {
+                    if (t instanceof RedisSystemException &&
+                            t.getCause() instanceof RedisException &&
+                            "Connection closed".equals(t.getCause().getMessage())) {
+                        // 处理连接关闭的情况
+                        log.warn("Connection is already closed");
+                    } else {
+                        log.error("Unexpected error in Redis stream listener", t);
+                    }
+                })
                 .build();
 
         StreamMessageListenerContainer listenerContainer = StreamMessageListenerContainer
@@ -71,7 +82,6 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
                 Consumer.from(group, group + dataCenterId),
                 StreamOffset.create(event, ReadOffset.lastConsumed()),
                 streamListener);
-
         listenerContainer.start();
     }
 
