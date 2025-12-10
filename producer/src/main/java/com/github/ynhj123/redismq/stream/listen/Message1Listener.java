@@ -2,6 +2,8 @@ package com.github.ynhj123.redismq.stream.listen;
 
 import com.github.ynhj123.redismq.stream.annotation.RedisStreamMqListen;
 import com.github.ynhj123.redismq.stream.message.TestMessage1;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.stream.ObjectRecord;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
@@ -16,8 +18,10 @@ import org.springframework.stereotype.Component;
 @Component
 @RedisStreamMqListen(value = "message1Listener", type = TestMessage1.class)
 public class Message1Listener implements StreamListener<String, ObjectRecord<String, TestMessage1>> {
+    private static final Logger logger = LoggerFactory.getLogger(Message1Listener.class);
+
     @Override
     public void onMessage(ObjectRecord<String, TestMessage1> message) {
-        System.out.println(message.getValue().content);
+        logger.info("onMessage: {}", message.getValue().content);
     }
 }

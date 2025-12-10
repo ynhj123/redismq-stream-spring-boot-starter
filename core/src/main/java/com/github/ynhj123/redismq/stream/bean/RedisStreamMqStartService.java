@@ -13,4 +13,6 @@ public interface RedisStreamMqStartService {
     void listener(String event, Class type, StreamListener streamListener);
 
     <V> void coverSend(String event, V val);
+
+    <V> void delaySend(String event, V val, long delayMillis);
 }

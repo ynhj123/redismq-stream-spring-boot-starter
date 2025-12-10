@@ -7,6 +7,11 @@ package com.github.ynhj123.redismq.stream.message;
  * @version: 1.0
  * @description： update_version: update_date: update_author: update_note:
  */
-public class TestMessage2 {
+import java.io.Serial;
+import java.io.Serializable;
+
+public class TestMessage2 implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
     public String content;
 }

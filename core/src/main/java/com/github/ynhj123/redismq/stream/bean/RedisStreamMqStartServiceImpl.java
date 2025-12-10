@@ -3,6 +3,7 @@ package com.github.ynhj123.redismq.stream.bean;
 import io.lettuce.core.RedisBusyException;
 import io.lettuce.core.RedisCommandExecutionException;
 import io.lettuce.core.RedisException;
+
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
+import java.io.*;
 
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
@@ -32,7 +34,7 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
 
     private final StringRedisTemplate redisTemplate;
 
-    private String group;
+    private final String group;
     long maxLen;
 
     public RedisStreamMqStartServiceImpl(StringRedisTemplate redisTemplate, String group, Long maxLen) {
@@ -55,6 +57,44 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
         redisTemplate.opsForStream().add(record);
         redisTemplate.opsForStream().trim(event, maxLen, true);
         log.info("event {} send content {}", event, val);
+    }
+
+    @Override
+    public <V> void delaySend(String event, V val, long delayMillis) {
+        try {
+            // 使用Java原生序列化消息
+            String serializedMessage = serialize(val);
+            // 计算过期时间戳
+            long expireTime = System.currentTimeMillis() + delayMillis;
+            // 存入zSet，key为delay:{event}
+            String delayKey = "delay:" + event;
+            redisTemplate.opsForZSet().add(delayKey, serializedMessage, expireTime);
+            log.info("event {} delay send content {} after {} ms", event, val, delayMillis);
+        } catch (Exception e) {
+            log.error("event {} delay send error", event, e);
+        }
+    }
+    
+    // Java原生序列化
+    private <V> String serialize(V obj) throws IOException {
+        if (!(obj instanceof Serializable)) {
+            throw new IllegalArgumentException("Object must implement Serializable");
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(obj);
+        oos.close();
+        return java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+    
+    // Java原生反序列化
+    private <V> V deserialize(String data) throws IOException, ClassNotFoundException {
+        byte[] bytes = java.util.Base64.getDecoder().decode(data);
+        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        V obj = (V) ois.readObject();
+        ois.close();
+        return obj;
     }
 
     private void startSubscription(String event, Class type, StreamListener streamListener) {
