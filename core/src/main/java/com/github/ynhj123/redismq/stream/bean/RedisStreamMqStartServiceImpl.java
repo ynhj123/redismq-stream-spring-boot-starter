@@ -36,11 +36,23 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
 
     private final String group;
     long maxLen;
+    private final String prefix;
 
-    public RedisStreamMqStartServiceImpl(StringRedisTemplate redisTemplate, String group, Long maxLen) {
+    public RedisStreamMqStartServiceImpl(StringRedisTemplate redisTemplate, String group, Long maxLen, String prefix) {
         this.redisTemplate = redisTemplate;
         this.group = group;
         this.maxLen = maxLen;
+        this.prefix = prefix;
+    }
+
+    /**
+     * 获取带前缀的完整Redis键
+     */
+    private String getFullKey(String event) {
+        if (StringUtils.isBlank(prefix)) {
+            return event;
+        }
+        return prefix + ":" + event;
     }
 
 
@@ -55,12 +67,13 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
     }
 
     public <V> void coverSend(String event, V val) {
+        String fullKey = getFullKey(event);
         ObjectRecord<String, V> record = StreamRecords.newRecord()
                 .ofObject(val)
                 .withId(RecordId.autoGenerate())
-                .withStreamKey(event);
+                .withStreamKey(fullKey);
         redisTemplate.opsForStream().add(record);
-        redisTemplate.opsForStream().trim(event, maxLen, true);
+        redisTemplate.opsForStream().trim(fullKey, maxLen, true);
         log.info("event {} send content {}", event, val);
     }
 
@@ -72,7 +85,7 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
             // 计算过期时间戳
             long expireTime = System.currentTimeMillis() + delayMillis;
             // 存入zSet，key为delay:{event}
-            String delayKey = "delay:" + event;
+            String delayKey = getFullKey("delay:" + event);
             redisTemplate.opsForZSet().add(delayKey, serializedMessage, expireTime);
             log.info("event {} delay send content {} after {} ms", event, val, delayMillis);
         } catch (Exception e) {
@@ -80,13 +93,13 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
         }
     }
 
-    @Override
-    public <V> void sendToDeadLetterQueue(String event, V val, String reason, int attempts) {
+    private <V> void sendToDeadLetterQueue(String event, V val, String reason, int attempts) {
         // 死信队列命名：{event}-dlq
-        String dlqEvent = event + "-dlq";
+        String queueName = event + "-dlq";
+        String dlqEvent = getFullKey(queueName);
 
         // 创建死信队列的消费者组
-        createGroup(dlqEvent);
+        createGroup(queueName);
 
         // 构建死信消息，包含原始消息和失败信息
         DeadLetterMessage<V> dlqMessage = new DeadLetterMessage<>();
@@ -129,6 +142,7 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
     }
 
     private void startSubscription(String event, Class type, StreamListener streamListener, int maxAttempts) {
+        String fullKey = getFullKey(event);
         RedisConnectionFactory redisConnectionFactory = redisTemplate.getConnectionFactory();
         StreamMessageListenerContainer.StreamMessageListenerContainerOptions options = StreamMessageListenerContainer
                 .StreamMessageListenerContainerOptions
@@ -153,7 +167,7 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
         // 使用手动ACK模式
         listenerContainer.receive(
                 Consumer.from(group, group + dataCenterId),
-                StreamOffset.create(event, ReadOffset.lastConsumed()),
+                StreamOffset.create(fullKey, ReadOffset.lastConsumed()),
                 new StreamListenerWrapper(streamListener, event, maxAttempts));
         listenerContainer.start();
     }
@@ -164,34 +178,34 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
         private final StreamListener<String, ObjectRecord<String, ?>> delegate;
         private final String event;
         private final int maxAttempts;
-        
+
         public StreamListenerWrapper(StreamListener<String, ObjectRecord<String, ?>> delegate, String event, int maxAttempts) {
             this.delegate = delegate;
             this.event = event;
             this.maxAttempts = maxAttempts;
         }
-        
+
         @Override
         public void onMessage(ObjectRecord<String, ?> message) {
             RecordId messageId = message.getId();
             Object value = message.getValue();
-            
+
             // 构建失败计数key
-            String failureKey = "stream:failure:" + event + ":" + messageId;
-            
+            String failureKey = getFullKey(event + ":failure:" + messageId);
+
             // 获取当前失败次数
             int attempts = getFailureCount(failureKey);
-            
+
             // 立即重试逻辑
             while (attempts < maxAttempts) {
                 attempts++;
                 // 更新失败次数
                 updateFailureCount(failureKey, attempts);
-                
+
                 try {
                     // 调用实际的监听器处理消息
                     delegate.onMessage(message);
-                    
+
                     // 处理成功，确认消息并删除失败计数
                     redisTemplate.opsForStream().acknowledge(group, message);
                     redisTemplate.delete(failureKey);
@@ -199,7 +213,7 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
                     return;
                 } catch (Exception e) {
                     log.error("event {} message {} processing failed, attempt {} of {}", event, messageId, attempts, maxAttempts, e);
-                    
+
                     if (attempts >= maxAttempts) {
                         // 达到最大重试次数，发送至死信队列
                         sendToDeadLetterQueue(event, value, e.getMessage(), attempts);
@@ -209,10 +223,10 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
                         log.warn("event {} message {} sent to DLQ after {} attempts", event, messageId, attempts);
                         return;
                     }
-                    
+
                     // 重试间隔，指数退避
                     try {
-                        Thread.sleep(1000 * attempts);
+                        Thread.sleep(1000L * attempts);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         log.error("event {} message {} retry interrupted", event, messageId, ie);
@@ -221,7 +235,7 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
                 }
             }
         }
-        
+
         // 获取失败计数
         private int getFailureCount(String failureKey) {
             String countStr = redisTemplate.opsForValue().get(failureKey);
@@ -234,7 +248,7 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
                 return 0;
             }
         }
-        
+
         // 更新失败计数
         private void updateFailureCount(String failureKey, int count) {
             redisTemplate.opsForValue().set(failureKey, String.valueOf(count));
@@ -244,16 +258,17 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
     }
 
     private void createGroup(String event) {
+        String fullKey = getFullKey(event);
         try {
-            redisTemplate.opsForStream().createGroup(event, group);
+            redisTemplate.opsForStream().createGroup(fullKey, group);
         } catch (RedisSystemException e) {
             if (e.getRootCause().getClass().equals(RedisBusyException.class)) {
                 log.info("STREAM - Redis group already exists, skipping Redis group creation: order");
             } else if (e.getRootCause().getClass().equals(RedisCommandExecutionException.class)) {
                 log.info("STREAM - Stream does not yet exist, creating empty stream: event-stream");
                 // TODO: There has to be a better way to create a stream than this!?
-                redisTemplate.opsForStream().add(event, Collections.singletonMap("", ""));
-                redisTemplate.opsForStream().createGroup(event, group);
+                redisTemplate.opsForStream().add(fullKey, Collections.singletonMap("", ""));
+                redisTemplate.opsForStream().createGroup(fullKey, group);
             } else throw e;
         }
     }

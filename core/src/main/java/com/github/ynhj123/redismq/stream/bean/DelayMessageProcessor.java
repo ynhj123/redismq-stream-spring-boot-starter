@@ -36,6 +36,8 @@ public class DelayMessageProcessor {
     private final long processingTimeout = 10000; // 消息处理超时时间，10秒
     @Value("${spring.redis.stream.maxLen:100}")
     long maxLen = 1000;
+    @Value("${spring.redis.stream.prefix:redismq}")
+    private String prefix;
 
 
     @Autowired
@@ -45,6 +47,16 @@ public class DelayMessageProcessor {
 
         this.executor = Executors.newSingleThreadScheduledExecutor();
         this.init();
+    }
+
+    /**
+     * 获取带前缀的完整Redis键
+     */
+    private String getFullKey(String event) {
+        if (prefix == null || prefix.isEmpty()) {
+            return event;
+        }
+        return prefix + ":" + event;
     }
 
     private void init() {
@@ -99,7 +111,7 @@ public class DelayMessageProcessor {
                 if (removed != null && removed > 0) {
                     // 反序列化消息（Redis Stream会自动根据监听器的类型进行转换）
                     Object messageObj = deserialize(serializedMessage);
-                    // 发送到对应的Redis Stream
+                    // 发送到对应的Redis Stream（event已经包含前缀，无需再次添加）
                     ObjectRecord<String, Object> record = StreamRecords.newRecord()
                             .ofObject(messageObj)
                             .withId(RecordId.autoGenerate())
@@ -116,7 +128,7 @@ public class DelayMessageProcessor {
             redisTemplate.delete(processingKey);
         }
     }
-    
+
     // Java原生序列化
     private <V> String serialize(V obj) throws IOException {
         if (!(obj instanceof Serializable)) {
@@ -128,7 +140,7 @@ public class DelayMessageProcessor {
         oos.close();
         return java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
     }
-    
+
     // Java原生反序列化
     private <V> V deserialize(String data) throws IOException, ClassNotFoundException {
         byte[] bytes = java.util.Base64.getDecoder().decode(data);

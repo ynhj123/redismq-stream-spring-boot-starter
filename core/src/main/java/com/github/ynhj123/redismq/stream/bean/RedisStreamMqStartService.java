@@ -11,12 +11,10 @@ import org.springframework.data.redis.stream.StreamListener;
  */
 public interface RedisStreamMqStartService {
     void listener(String event, Class type, StreamListener streamListener);
-    
+
     void listener(String event, Class type, StreamListener streamListener, int maxAttempts);
 
     <V> void coverSend(String event, V val);
 
     <V> void delaySend(String event, V val, long delayMillis);
-    
-    <V> void sendToDeadLetterQueue(String event, V val, String reason, int attempts);
 }

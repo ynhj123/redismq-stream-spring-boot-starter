@@ -23,11 +23,13 @@ public class RedisStreamMqAutoConfigure {
     private String group;
     @Value("${spring.redis.stream.maxLen:100}")
     long maxLen = 1000;
+    @Value("${spring.redis.stream.prefix:redismq}")
+    private String prefix;
 
     @Bean
     @ConditionalOnMissingBean(RedisStreamMqStartService.class)
     public RedisStreamMqStartService redisStreamMqStartService(StringRedisTemplate stringRedisTemplate) {
-        return new RedisStreamMqStartServiceImpl(stringRedisTemplate, group, maxLen);
+        return new RedisStreamMqStartServiceImpl(stringRedisTemplate, group, maxLen, prefix);
     }
 
     @Bean
