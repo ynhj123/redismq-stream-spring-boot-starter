@@ -1,57 +1,58 @@
 # redismq-stream-spring-boot-starter
-基于 Redis Stream 实现的轻量级消息队列 Spring Boot Starter，提供简单易用的 API，支持多种消息模式和高级特性。
+Lightweight message queue Spring Boot Starter based on Redis Stream, providing simple and easy-to-use API with multiple message patterns and advanced features.
 
-## [文档](https://www.jianshu.com/p/b95a265f838a)
+## [Documentation](https://www.jianshu.com/p/b95a265f838a) (Chinese)
 
-## 功能特性
+[中文版本](README-CN.md)
+## Features
 
-- [x] **异步消息**：支持异步发送和消费消息
-- [x] **订阅发布**：支持多消费者组订阅同一消息
-- [x] **延迟消息**：支持指定延迟时间后触发消息
-- [x] **ACK 机制**：支持消息确认和手动提交
-- [x] **死信队列**：支持失败消息重试N次自动进入死信队列
-- [x] **优雅停机**：支持消费者优雅停止，确保消息不丢失
+- [x] **Asynchronous Messages**: Support sending and consuming messages asynchronously
+- [x] **Publish-Subscribe**: Support multiple consumer groups subscribing to the same message
+- [x] **Delayed Messages**: Support triggering messages after a specified delay time
+- [x] **ACK Mechanism**: Support message acknowledgment and manual commit
+- [x] **Dead Letter Queue**: Support automatically moving failed messages to dead letter queue after N retries
+- [x] **Graceful Shutdown**: Support graceful stop of consumers to ensure no message loss
 
-## 技术方案
+## Technical Solution
 
-### 1. 核心技术栈
+### 1. Core Technology Stack
 - Spring Boot 3.x
-- Redis Stream (基于 Lettuce 客户端)
+- Redis Stream (based on Lettuce client)
 - Java 21
 
-### 2. 架构设计
+### 2. Architecture Design
 
-#### 模块结构
-- `core`：核心功能实现，包含自动配置、消息发送、消费等核心逻辑
-- `common`：通用测试类和消息实体
-- `consumer`：消费者示例
-- `producer`：生产者示例
+#### Module Structure
+- `core`: Core function implementation, including auto-configuration, message sending, consumption, etc.
+- `common`: Common test classes and message entities
+- `consumer`: Consumer examples
+- `producer`: Producer examples
 
-#### 核心实现
+#### Core Implementation
 
-##### 消息发送机制
-- 普通消息：直接写入 Redis Stream
-- 延迟消息：使用 Redis ZSet 存储，定时轮询触发
-- 覆盖发送：写入并自动裁剪 Stream 长度
+##### Message Sending Mechanism
+- Normal messages: Directly written to Redis Stream
+- Delayed messages: Stored using Redis ZSet, triggered by定时轮询
+- Cover send: Write and automatically trim Stream length
 
-##### 消息消费机制
-- 基于 Spring Data Redis StreamListener
-- 支持多消费者组，相同组内消息仅消费一次
-- 手动 ACK 模式，确保消息可靠消费
+##### Message Consumption Mechanism
+- Based on Spring Data Redis StreamListener
+- Support multiple consumer groups, messages in the same group are consumed only once
+- Manual ACK mode to ensure reliable message consumption
 
-##### 延迟消息实现
-- 使用 Redis ZSet 存储延迟消息，Score 为过期时间戳
-- 定时任务每秒轮询 ZSet，将到期消息移至目标 Stream
-- 支持消息幂等处理，避免重复消费
+##### Delayed Message Implementation
+- Store delayed messages using Redis ZSet, Score is the expiration timestamp
+- Scheduled task polls ZSet every second, moving expired messages to target Stream
+- Support idempotent message processing to avoid duplicate consumption
 
-##### 死信队列实现
-- 消息消费失败达到最大重试次数后自动进入死信队列
-- 死信队列命名规则：`{event}-dlq`
-- 支持单独监听和处理死信消息
+##### Dead Letter Queue Implementation
+- Messages automatically enter dead letter queue after maximum retry times are reached
+- Dead letter queue naming rule: `{event}-dlq`
+- Support separate listening and processing of dead letter messages
 
-## 快速开始
+## Quick Start
 
-### 1. 引入依赖
+### 1. Add Dependency
 
 ```xml
 <dependency>
@@ -61,9 +62,9 @@
 </dependency>
 ```
 
-### 2. 配置 Redis
+### 2. Configure Redis
 
-在 `application.properties` 或 `application.yml` 中配置 Redis 连接信息：
+Configure Redis connection information in `application.properties` or `application.yml`:
 
 ```properties
 spring.data..redis.host=localhost
@@ -72,14 +73,13 @@ spring.data..redis.password=
 spring.data..redis.database=0
 ```
 
+| Configuration Item | Default Value | Description |
+| --- | --- | --- |
+| spring.redis.stream.prefix | redismq | Redis Key prefix |
+| spring.redis.stream.maxLen | 100 | Maximum Stream length, automatically trimmed when exceeded |
+| spring.redis.stream.delay.enabled | true | Whether to enable delayed message function |
 
-| 配置项 | 默认值 | 描述               |
-| --- | --- |------------------|
-| spring.redis.stream.prefix | redismq | Redis Key 前缀     |
-| spring.redis.stream.maxLen | 100 | Stream 最大长度，超过自动裁剪 |
-| spring.redis.stream.delay.enabled | true | 是否启用延迟消息功能       |
-
-### 3. 发送消息
+### 3. Send Messages
 
 ```java
 import com.github.ynhj123.redismq.stream.bean.RedisStreamMqStartService;
@@ -92,19 +92,23 @@ public class MessageProducer {
     @Autowired
     private RedisStreamMqStartService redisStreamMqStartService;
     
-    // 发送普通消息
+    // Send normal message
     public void sendMessage(String message) {
-        redisStreamMqStartService.coverSend("test-event", message);
+        TestMessage1 testMessage1 = new TestMessage1();
+        testMessage1.content = message;
+        redisStreamMqStartService.coverSend("message1Listener", testMessage1);
     }
     
-    // 发送延迟消息
+    // Send delayed message
     public void sendDelayMessage(String message, long delayMillis) {
-        redisStreamMqStartService.delaySend("test-event", message, delayMillis);
+        TestMessage1 testMessage1 = new TestMessage1();
+        testMessage1.content = message;
+        redisStreamMqStartService.delaySend("message1Listener", testMessage1, delayMillis);
     }
 }
 ```
 
-### 4. 消费消息
+### 4. Consume Messages
 
 ```java
 import com.github.ynhj123.redismq.stream.bean.RedisStreamMqStartService;
@@ -119,42 +123,42 @@ public class MessageConsumer implements StreamListener<String, ObjectRecord<Stri
     
     @Override
     public void onMessage(ObjectRecord<String, TestMessage1> message) {
-        // 处理消息
-        String msg = message.getValue();
-        System.out.println("Received message: " + msg);
+        // Process message
+        TestMessage1 msg = message.getValue();
+        System.out.println("Received message: " + msg.content);
         
-        // 业务处理...
+        // Business processing...
         
-        // 注意：Redis Stream 会自动处理 ACK
+        // Note: Redis Stream automatically handles ACK
     }
 }
 ```
 
+## Advanced Features
 
+### 1. Consumer Groups
 
-## 高级特性
+- Consumer group defaults to `spring.application.name`
+- Different groups can consume the same message repeatedly
+- Messages in the same group are consumed only once
 
-### 1. 消费者组
+### 2. Message Retry
 
-- 消费者组默认使用 `spring.application.name`
-- 不同组可以重复消费同一条消息
-- 相同组内消息仅消费一次
+- Default maximum retry times: 3 times
+- Retry interval: 1s, 2s, 3s (exponential backoff)
+- Enter dead letter queue after exceeding maximum retry times
 
-### 2. 消息重试
+### 3. Dead Letter Queue
 
-- 默认最大重试次数：3次
-- 重试间隔：1秒、2秒、3秒（指数退避）
-- 超过最大重试次数后进入死信队列
+- Dead letter messages contain original messages and failure information
+- Can listen to dead letter queue separately: `{event}-dlq`
 
-### 3. 死信队列
+## Project Introduction
 
-- 死信消息包含原始消息和失败信息
-- 可以单独监听死信队列：`{event}-dlq`
+- **core**: Core code implementation
+- **common**: Common test classes, including message entities
+- **consumer**: Test consumers for multi-instance testing of asynchronous and subscription notifications
+- **producer**: Test producer that generates and consumes messages after startup
 
-## 项目介绍
-
-- **core**：核心代码实现
-- **common**：测试通用类，包含消息实体
-- **consumer**：测试消费者，用于多开测试异步和订阅通知
-- **producer**：测试生产者，启动后生成消息并同时消费
+---
 
