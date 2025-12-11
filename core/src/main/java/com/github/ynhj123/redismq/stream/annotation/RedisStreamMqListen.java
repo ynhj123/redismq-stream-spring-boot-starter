@@ -16,4 +16,8 @@ public @interface RedisStreamMqListen {
     String value();
 
     Class type();
+    
+    int maxAttempts() default 3;
+    
+    boolean isDeadLetterQueue() default false;
 }

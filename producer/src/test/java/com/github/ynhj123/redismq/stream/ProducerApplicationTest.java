@@ -38,7 +38,6 @@ public class ProducerApplicationTest {
             }
             Thread.sleep(1000l);
         }
-
     }
 
     @Test
@@ -63,4 +62,5 @@ public class ProducerApplicationTest {
         
         log.info("Delay message test completed");
     }
+
 }

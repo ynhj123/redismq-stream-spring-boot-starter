@@ -5,7 +5,7 @@
     <parent>
         <artifactId>redismq-stream-spring-boot-start</artifactId>
         <groupId>com.github.ynhj123</groupId>
-        <version>0.0.4</version>
+        <version>0.0.5</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -14,13 +14,13 @@
         <dependency>
             <groupId>com.github.ynhj123</groupId>
             <artifactId>core</artifactId>
-            <version>0.0.4</version>
+            <version>0.0.5</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.github.ynhj123</groupId>
             <artifactId>common</artifactId>
-            <version>0.0.4</version>
+            <version>0.0.5</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

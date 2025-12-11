@@ -32,8 +32,17 @@ public class ListenAnnotation implements ApplicationListener<ContextRefreshedEve
             Map<String, Object> beans = event.getApplicationContext().getBeansWithAnnotation(RedisStreamMqListen.class);
             for (Object bean : beans.values()) {
                 RedisStreamMqListen ca = bean.getClass().getAnnotation(RedisStreamMqListen.class);
-                redisStreamMqStartService.listener(ca.value(), ca.type(), (StreamListener) bean);
-                log.info("event {} start listen", ca.value());
+                String eventName = ca.value();
+                int maxAttempts = ca.maxAttempts();
+                boolean isDeadLetterQueue = ca.isDeadLetterQueue();
+                
+                // 如果是死信队列，使用死信队列的event名称
+                if (isDeadLetterQueue) {
+                    eventName = eventName + "-dlq";
+                }
+                
+                redisStreamMqStartService.listener(eventName, ca.type(), (StreamListener) bean, maxAttempts);
+                log.info("event {} start listen, maxAttempts: {}, isDeadLetterQueue: {}", eventName, maxAttempts, isDeadLetterQueue);
             }
 
         }
