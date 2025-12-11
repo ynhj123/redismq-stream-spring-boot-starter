@@ -13,7 +13,7 @@
 
     <groupId>com.github.ynhj123</groupId>
     <artifactId>redismq-stream-spring-boot-start</artifactId>
-    <version>0.0.5</version>
+    <version>1.0.0</version>
     <name>redismq-stream-spring-boot-start</name>
     <description>Demo project for Spring Boot</description>
     <url>https://github.com/ynhj123/redismq-stream-spring-boot-start</url>
