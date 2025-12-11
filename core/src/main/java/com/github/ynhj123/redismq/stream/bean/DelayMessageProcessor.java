@@ -1,5 +1,6 @@
 package com.github.ynhj123.redismq.stream.bean;
 
+import com.github.ynhj123.redismq.stream.utils.SerializeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +12,6 @@ import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
-import java.lang.reflect.Field;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -110,7 +109,7 @@ public class DelayMessageProcessor {
                 Long removed = redisTemplate.opsForZSet().remove(delayKey, serializedMessage);
                 if (removed != null && removed > 0) {
                     // 反序列化消息（Redis Stream会自动根据监听器的类型进行转换）
-                    Object messageObj = deserialize(serializedMessage);
+                    Object messageObj = SerializeUtils.deserialize(serializedMessage);
                     // 发送到对应的Redis Stream（event已经包含前缀，无需再次添加）
                     ObjectRecord<String, Object> record = StreamRecords.newRecord()
                             .ofObject(messageObj)
@@ -127,27 +126,5 @@ public class DelayMessageProcessor {
             // 移除处理标记
             redisTemplate.delete(processingKey);
         }
-    }
-
-    // Java原生序列化
-    private <V> String serialize(V obj) throws IOException {
-        if (!(obj instanceof Serializable)) {
-            throw new IllegalArgumentException("Object must implement Serializable");
-        }
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(obj);
-        oos.close();
-        return java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
-    }
-
-    // Java原生反序列化
-    private <V> V deserialize(String data) throws IOException, ClassNotFoundException {
-        byte[] bytes = java.util.Base64.getDecoder().decode(data);
-        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        V obj = (V) ois.readObject();
-        ois.close();
-        return obj;
     }
 }

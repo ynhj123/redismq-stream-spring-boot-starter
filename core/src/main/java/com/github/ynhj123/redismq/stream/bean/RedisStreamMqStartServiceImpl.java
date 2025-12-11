@@ -1,6 +1,7 @@
 package com.github.ynhj123.redismq.stream.bean;
 
 import com.github.ynhj123.redismq.stream.entity.DeadLetterMessage;
+import com.github.ynhj123.redismq.stream.utils.SerializeUtils;
 import io.lettuce.core.RedisBusyException;
 import io.lettuce.core.RedisCommandExecutionException;
 import io.lettuce.core.RedisException;
@@ -15,7 +16,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 
-import java.io.*;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -81,7 +81,7 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
     public <V> void delaySend(String event, V val, long delayMillis) {
         try {
             // 使用Java原生序列化消息
-            String serializedMessage = serialize(val);
+            String serializedMessage = SerializeUtils.serialize(val);
             // 计算过期时间戳
             long expireTime = System.currentTimeMillis() + delayMillis;
             // 存入zSet，key为delay:{event}
@@ -119,27 +119,6 @@ public class RedisStreamMqStartServiceImpl implements RedisStreamMqStartService 
         log.info("event {} message sent to DLQ, reason: {}, attempts: {}", event, reason, attempts);
     }
 
-    // Java原生序列化
-    private <V> String serialize(V obj) throws IOException {
-        if (!(obj instanceof Serializable)) {
-            throw new IllegalArgumentException("Object must implement Serializable");
-        }
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(obj);
-        oos.close();
-        return java.util.Base64.getEncoder().encodeToString(baos.toByteArray());
-    }
-
-    // Java原生反序列化
-    private <V> V deserialize(String data) throws IOException, ClassNotFoundException {
-        byte[] bytes = java.util.Base64.getDecoder().decode(data);
-        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        V obj = (V) ois.readObject();
-        ois.close();
-        return obj;
-    }
 
     private void startSubscription(String event, Class type, StreamListener streamListener, int maxAttempts) {
         String fullKey = getFullKey(event);
