@@ -32,7 +32,7 @@ Lightweight message queue Spring Boot Starter based on Redis Stream, providing s
 
 ##### Message Sending Mechanism
 - Normal messages: Directly written to Redis Stream
-- Delayed messages: Stored using Redis ZSet, triggered by定时轮询
+- Delayed messages: Stored using Redis ZSet, triggered by periodic polling
 - Cover send: Write and automatically trim Stream length
 
 ##### Message Consumption Mechanism
