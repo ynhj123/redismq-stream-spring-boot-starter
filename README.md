@@ -1,3 +1,5 @@
+
+
 # redismq-stream-spring-boot-starter
 Lightweight message queue Spring Boot Starter based on Redis Stream, providing simple and easy-to-use API with multiple message patterns and advanced features.
 
@@ -67,10 +69,10 @@ Lightweight message queue Spring Boot Starter based on Redis Stream, providing s
 Configure Redis connection information in `application.properties` or `application.yml`:
 
 ```properties
-spring.data..redis.host=localhost
-spring.data..redis.port=6379
-spring.data..redis.password=
-spring.data..redis.database=0
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+spring.data.redis.password=
+spring.data.redis.database=0
 ```
 
 | Configuration Item | Default Value | Description |
@@ -161,4 +163,3 @@ public class MessageConsumer implements StreamListener<String, ObjectRecord<Stri
 - **producer**: Test producer that generates and consumes messages after startup
 
 ---
-
